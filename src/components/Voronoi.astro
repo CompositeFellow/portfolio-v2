@@ -1,0 +1,39 @@
+---
+
+
+---
+
+
+<script>
+    let screenWidth = window.innerWidth;
+
+    function determineSvgWidth(screenSize){
+        if (screenSize < 640) return screenSize
+        const screensizes = [640, 768, 1024, 1280, 1536]
+        const options = screensizes.filter((size)=> size <= screenSize)
+        if (options.length > 0 ){
+            const finalSize = Math.ceil(options.pop() * .8)
+            return finalSize
+        }else {
+            return 500
+        }
+    }
+
+    let voronoiSize = determineSvgWidth(screenWidth)
+
+    const voronoiElement = document.getElementById("voronoi")
+    voronoiElement.setAttribute("width", voronoiSize.toString())
+    voronoiElement.setAttribute("height", "100")
+
+    const voronoiPath = document.getElementById("voronoipath")
+    voronoiPath?.setAttribute("d", `M0 0 C 50 ${voronoiSize /3} 300 10 500 0 `)
+
+</script>
+
+
+<div class="w-full flex justify-center"> 
+    <svg xmlns="http://www.w3.org/2000/svg" id="voronoi"  viewBox="0 0 500 200" preserveAspectRatio="none">
+        <path id="voronoipath" fill="none" stroke="white" stroke-width="2"/>
+    </svg>
+</div>
+
