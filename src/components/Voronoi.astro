@@ -1,39 +1,87 @@
 ---
+import CurvyWindow from "./CurvyWindow.astro";
 
 
 ---
 
-
 <script>
-    let screenWidth = window.innerWidth;
+  import { Delaunay } from 'd3-delaunay'
 
-    function determineSvgWidth(screenSize){
-        if (screenSize < 640) return screenSize
-        const screensizes = [640, 768, 1024, 1280, 1536]
-        const options = screensizes.filter((size)=> size <= screenSize)
-        if (options.length > 0 ){
-            const finalSize = Math.ceil(options.pop() * .8)
-            return finalSize
-        }else {
-            return 500
-        }
+  const voronoiDensity = 125
+  const contractionPercent = .85
+  const maxX = 1000
+  const maxY = 100
+
+  // Updated the function to push arrays instead of individual values
+  function generateCoordinateList (length, maxX, maxY){
+    let points = []
+    for (let i = 0; i < length ; i++){
+      const x = Math.floor(Math.random() * maxX +1)
+      const y = Math.floor(Math.random() * maxY +1)
+      points.push([x,y]) // Changed this line
     }
+    return points
+  }
 
-    let voronoiSize = determineSvgWidth(screenWidth)
+  const coordinates = generateCoordinateList(voronoiDensity, maxX, maxY)
+  console.log(coordinates)
 
-    const voronoiElement = document.getElementById("voronoi")
-    voronoiElement.setAttribute("width", voronoiSize.toString())
-    voronoiElement.setAttribute("height", "100")
+  // Flattening the 2D array into a 1D array for Delaunay
+  const flatCoordinates = coordinates.flat()
 
-    const voronoiPath = document.getElementById("voronoipath")
-    voronoiPath?.setAttribute("d", `M0 0 C 50 ${voronoiSize /3} 300 10 500 0 `)
+  // Generate Delaunay triangulation
+  const delaunay = new Delaunay(flatCoordinates)  // Used flatCoordinates
+
+  // Voronoi diagram creation
+  const voronoi = delaunay.voronoi([0,0,maxX,maxY])
+  const cells = voronoi.cellPolygons()
+
+  // render
+  const voronoiSVG = document.getElementById("voronoiSvg")
+
+  let i = 0
+  for (const cell of cells){
+    const cx = coordinates[i][0];
+    const cy = coordinates[i][1];
+    
+    const contractedPolygon = cell.map(([x, y]) => {
+      const dx = x - cx;
+      const dy = y - cy;
+      return [cx + dx * contractionPercent, cy + dy * contractionPercent];
+    });
+    
+    let d = "M" + contractedPolygon[0][0] + "," + contractedPolygon[0][1];
+    for (let j = 0; j < contractedPolygon.length; ++j) {
+      let p0 = contractedPolygon[j];
+      let p1 = contractedPolygon[(j + 1) % contractedPolygon.length];
+      let p2 = contractedPolygon[(j + 2) % contractedPolygon.length];
+
+      let mx1 = (p0[0] + p1[0]) / 2;
+      let my1 = (p0[1] + p1[1]) / 2;
+      let mx2 = (p1[0] + p2[0]) / 2;
+      let my2 = (p1[1] + p2[1]) / 2;
+
+      d += ` L ${mx1} ${my1}`;
+      d += ` Q ${p1[0]} ${p1[1]} ${mx2} ${my2}`;
+    }
+    d += "Z";
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    path.setAttribute("d",d)
+    path.setAttribute("stroke", "#131a26")
+    // path.setAttribute("stroke-width", "2")
+    path.setAttribute("fill", "#1e293b")
+    voronoiSVG?.appendChild(path)
+    i++
+  }
 
 </script>
-
-
-<div class="w-full flex justify-center"> 
-    <svg xmlns="http://www.w3.org/2000/svg" id="voronoi"  viewBox="0 0 500 200" preserveAspectRatio="none">
-        <path id="voronoipath" fill="none" stroke="white" stroke-width="2"/>
-    </svg>
+  
+<div class="w-full flex justify-center">
+  <div class="flex w-full md:w-[640px] lg:w-[768px] xl:w-[1024px] 2xl:w-[1536px] h-[120px] relative bg-red">
+    <CurvyWindow />
+    <div class="absolute top-0 left-0 w-full h-[120px] z-1" >
+      <svg id="voronoiSvg" background-color="red" class="absolute top-0 left-0 w-full max-h-[120px]" viewBox="0 0 1000 100" preserveAspectRatio="none" >
+      </svg>
+    </div>
+  </div>
 </div>
-
